@@ -1,6 +1,6 @@
 //@version=5
-// ============================================================
-// NASDAQ FX PRO – Entry & Exit Signal Indicator
+// =============================================================
+// NASDAQ FX PRO - Entry & Exit Signal Indicator
 // TradingView Pine Script v5
 //
 // INTENDED CHART : NQ1!, US100, QQQ, or any NASDAQ instrument
@@ -12,7 +12,7 @@
 //   3. Volatility regime - ATR-normalised, VIX proxy via CBOE:VIX
 //   4. Macro drivers  - US10Y yield (CBOE:TNX) & DXY pressure
 //   5. Session filter - NYSE open + London/NY overlap only
-//   6. Macro blackout - user-configurable minutes around events
+//   6. Macro blackout - user-configurable time window around events
 //
 // EXITS
 //   * Invalidation stop  - ATR multiple below/above entry bar
@@ -26,153 +26,148 @@
 //   * Min R:R check (reward >= rr_min x risk)
 //
 // CONFIDENCE SCORE  0-5  (one point per confluence factor met)
-// ============================================================
+// =============================================================
+
 indicator(
-     title        = "NASDAQ FX PRO – Entry & Exit Signals",
-     shorttitle   = "NQ FX PRO",
-     overlay      = true,
-     max_bars_back = 500,
+     title           = "NASDAQ FX PRO - Entry & Exit Signals",
+     shorttitle      = "NQ FX PRO",
+     overlay         = true,
+     max_bars_back   = 500,
      max_lines_count = 100,
      max_labels_count = 200)
 
-// ─────────────────────────────────────────────
-// 0. SAFETY GUARD – warn if not on a NASDAQ chart
-// ─────────────────────────────────────────────
-var bool isNasdaq = str.contains(str.upper(syminfo.ticker), "NQ")  or
-                    str.contains(str.upper(syminfo.ticker), "US100") or
-                    str.contains(str.upper(syminfo.ticker), "NDX")  or
-                    str.contains(str.upper(syminfo.ticker), "QQQ")  or
-                    str.contains(str.upper(syminfo.ticker), "USTEC") or
+// -------------------------------------------------------------
+// 0. SAFETY GUARD - warn if not on a NASDAQ chart
+// -------------------------------------------------------------
+var bool isNasdaq = str.contains(str.upper(syminfo.ticker), "NQ")     or
+                    str.contains(str.upper(syminfo.ticker), "US100")   or
+                    str.contains(str.upper(syminfo.ticker), "NDX")     or
+                    str.contains(str.upper(syminfo.ticker), "QQQ")     or
+                    str.contains(str.upper(syminfo.ticker), "USTEC")   or
                     str.contains(str.upper(syminfo.ticker), "NAS100")
 if barstate.islast and not isNasdaq
     label.new(bar_index, high,
-         "⚠️ Load this indicator on a NASDAQ chart\n(NQ1!, US100, QQQ, NDX, NAS100)",
+         "WARNING: Load this indicator on a NASDAQ chart\n(NQ1!, US100, QQQ, NDX, NAS100)",
          color=color.red, textcolor=color.white, size=size.normal)
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 1. USER INPUTS
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
-// — Trend
-emaFast   = input.int(21,  "Fast EMA",          group="Trend (EMA Ribbon)",  minval=5)
-emaSlow   = input.int(55,  "Slow EMA",          group="Trend (EMA Ribbon)",  minval=10)
-emaTrend  = input.int(200, "Trend EMA (200)",   group="Trend (EMA Ribbon)",  minval=50)
+// -- Trend
+emaFast  = input.int(21,  "Fast EMA",          group="Trend (EMA Ribbon)", minval=5)
+emaSlow  = input.int(55,  "Slow EMA",          group="Trend (EMA Ribbon)", minval=10)
+emaTrend = input.int(200, "Trend EMA (200)",   group="Trend (EMA Ribbon)", minval=50)
 
-// — Momentum
-rsiLen    = input.int(14,  "RSI Length",        group="Momentum",            minval=5)
-rsiBull   = input.int(55,  "RSI Bull threshold",group="Momentum",            minval=50, maxval=80)
-rsiBear   = input.int(45,  "RSI Bear threshold",group="Momentum",            minval=20, maxval=50)
-macdFast  = input.int(12,  "MACD Fast",         group="Momentum",            minval=5)
-macdSlow  = input.int(26,  "MACD Slow",         group="Momentum",            minval=10)
-macdSig   = input.int(9,   "MACD Signal",       group="Momentum",            minval=3)
+// -- Momentum
+rsiLen   = input.int(14,  "RSI Length",        group="Momentum", minval=5)
+rsiBull  = input.int(55,  "RSI Bull threshold",group="Momentum", minval=50, maxval=80)
+rsiBear  = input.int(45,  "RSI Bear threshold",group="Momentum", minval=20, maxval=50)
+macdFast = input.int(12,  "MACD Fast",         group="Momentum", minval=5)
+macdSlow = input.int(26,  "MACD Slow",         group="Momentum", minval=10)
+macdSig  = input.int(9,   "MACD Signal",       group="Momentum", minval=3)
 
-// — Volatility / ATR
-atrLen    = input.int(14,  "ATR Length",        group="Volatility / ATR",    minval=5)
-atrMult   = input.float(1.5,"ATR Stop Mult",    group="Volatility / ATR",    minval=0.5, step=0.1)
-atrTrail  = input.float(2.0,"ATR Trail Mult",   group="Volatility / ATR",    minval=0.5, step=0.1)
-vixHigh   = input.float(25.0,"VIX: high-vol threshold (reduce longs)",
-                              group="Volatility / ATR",                       minval=10.0)
-vixExtreme= input.float(35.0,"VIX: extreme – no new longs",
-                              group="Volatility / ATR",                       minval=20.0)
+// -- Volatility / ATR
+atrLen     = input.int(14,   "ATR Length",                            group="Volatility / ATR", minval=5)
+atrMult    = input.float(1.5,"ATR Stop Mult",                         group="Volatility / ATR", minval=0.5, step=0.1)
+atrTrail   = input.float(2.0,"ATR Trail Mult",                        group="Volatility / ATR", minval=0.5, step=0.1)
+vixHigh    = input.float(25.0,"VIX: high-vol threshold (reduce longs)",group="Volatility / ATR", minval=10.0)
+vixExtreme = input.float(35.0,"VIX: extreme - no new longs",          group="Volatility / ATR", minval=20.0)
 
-// — Macro drivers
-useTNX    = input.bool(true, "Use US10Y (TNX) as filter", group="Macro Drivers")
-useDXY    = input.bool(true, "Use DXY as filter",         group="Macro Drivers")
-tnxRisingBearish = input.bool(true,
-     "Rising 10Y yields = bearish NASDAQ bias",           group="Macro Drivers")
-dxyRisingBearish = input.bool(true,
-     "Rising DXY = bearish NASDAQ bias",                  group="Macro Drivers")
-macroMaLen = input.int(10, "Macro driver MA length",      group="Macro Drivers", minval=3)
+// -- Macro drivers
+useTNX           = input.bool(true,  "Use US10Y (TNX) as filter",        group="Macro Drivers")
+useDXY           = input.bool(true,  "Use DXY as filter",                group="Macro Drivers")
+tnxRisingBearish = input.bool(true,  "Rising 10Y yields = bearish bias", group="Macro Drivers")
+dxyRisingBearish = input.bool(true,  "Rising DXY = bearish bias",        group="Macro Drivers")
+macroMaLen       = input.int(10,     "Macro driver MA length",           group="Macro Drivers", minval=3)
 
-// — Session filter
-useSessionFilter = input.bool(true, "Session filter (NYSE hours only)", group="Session")
-// NYSE: 09:30–16:00 ET = 13:30–20:00 UTC
-sessionStr = input.string("1330-2000", "Session (UTC, 24h format)",     group="Session")
+// -- Session filter
+// NYSE: 09:30-16:00 ET = 13:30-20:00 UTC
+useSessionFilter = input.bool(true,       "Session filter (NYSE hours only)", group="Session")
+sessionStr       = input.string("1330-2000","Session (UTC, 24h format)",      group="Session")
 
-// — Macro event blackout
-useBlackout    = input.bool(false, "Enable macro event blackout",        group="Macro Blackout")
-blackoutMinutes= input.int(30, "Minutes to block around event (±)",      group="Macro Blackout", minval=5)
-// Users mark event bars manually via TradingView alerts; this block suppresses
-// signals within ±blackoutMinutes of the current bar's minute timestamp.
-// Practical usage: set a "no-trade" time window in the inputs below.
-blackoutStart  = input.string("1230", "Blackout window START (UTC hhmm)",group="Macro Blackout")
-blackoutEnd    = input.string("1400", "Blackout window END   (UTC hhmm)",group="Macro Blackout")
+// -- Macro event blackout
+useBlackout     = input.bool(false, "Enable macro event blackout",         group="Macro Blackout")
+blackoutStart   = input.string("1230","Blackout window START (UTC hhmm)",  group="Macro Blackout")
+blackoutEnd     = input.string("1400","Blackout window END   (UTC hhmm)",  group="Macro Blackout")
 
-// — Risk controls
-maxLongPerSession  = input.int(3, "Max LONG signals / session",          group="Risk Controls", minval=1)
-maxShortPerSession = input.int(3, "Max SHORT signals / session",         group="Risk Controls", minval=1)
-cooldownBars       = input.int(5, "Cooldown bars after signal",          group="Risk Controls", minval=1)
-rrMin              = input.float(1.5,"Min R:R to show signal",           group="Risk Controls", minval=1.0, step=0.1)
+// -- Risk controls
+maxLongPerSession  = input.int(3,   "Max LONG signals / session",  group="Risk Controls", minval=1)
+maxShortPerSession = input.int(3,   "Max SHORT signals / session", group="Risk Controls", minval=1)
+cooldownBars       = input.int(5,   "Cooldown bars after signal",  group="Risk Controls", minval=1)
+rrMin              = input.float(1.5,"Min R:R to show signal",     group="Risk Controls", minval=1.0, step=0.1)
 
-// — Display
+// -- Display
 showRibbon   = input.bool(true,  "Show EMA ribbon",       group="Display")
 showATRBands = input.bool(true,  "Show ATR stop bands",   group="Display")
 showScore    = input.bool(true,  "Show confidence score", group="Display")
 showMacro    = input.bool(false, "Show macro data panel", group="Display")
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 2. CORE CALCULATIONS
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
-// — EMA ribbon
-emaF  = ta.ema(close, emaFast)
-emaS  = ta.ema(close, emaSlow)
-emaT  = ta.ema(close, emaTrend)
+// -- EMA ribbon
+emaF = ta.ema(close, emaFast)
+emaS = ta.ema(close, emaSlow)
+emaT = ta.ema(close, emaTrend)
 
 trendUp   = emaF > emaS and emaS > emaT
 trendDown = emaF < emaS and emaS < emaT
 
-// — RSI
-rsi = ta.rsi(close, rsiLen)
+// -- RSI
+rsi        = ta.rsi(close, rsiLen)
 rsiBullish = rsi > rsiBull
 rsiBearish = rsi < rsiBear
 
-// — MACD
+// -- MACD
 [macdLine, signalLine, histLine] = ta.macd(close, macdFast, macdSlow, macdSig)
 macdBull = histLine > 0 and histLine > histLine[1]   // rising positive histogram
 macdBear = histLine < 0 and histLine < histLine[1]   // falling negative histogram
 
-// — ATR
+// -- ATR
 atr = ta.atr(atrLen)
 
-// — Volatility regime via request.security for VIX
-vixClose = request.security("CBOE:VIX", timeframe.period, close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
-vixLow   = vixClose < vixHigh
-vixOk    = vixClose < vixExtreme        // extreme fear: no new longs
+// -- Volatility regime via VIX
+vixClose = request.security("CBOE:VIX", timeframe.period, close,
+     gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+vixLow = vixClose < vixHigh
+vixOk  = vixClose < vixExtreme   // extreme fear: no new longs
 
-// — US10Y (TNX): rising yields bearish for NASDAQ
-tnxClose = useTNX ? request.security("CBOE:TNX", timeframe.period, close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off) : na
-tnxMa    = useTNX ? ta.ema(tnxClose, macroMaLen) : na
-tnxRising = useTNX ? (tnxClose > tnxMa) : false      // yields above MA = rising
+// -- US10Y (TNX): rising yields bearish for NASDAQ
+tnxClose  = useTNX ? request.security("CBOE:TNX", timeframe.period, close,
+     gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off) : na
+tnxMa     = useTNX ? ta.ema(tnxClose, macroMaLen) : na
+tnxRising = useTNX ? tnxClose > tnxMa : false
 
-// — DXY: rising DXY often bearish for NASDAQ
-dxyClose = useDXY ? request.security("DXY", timeframe.period, close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off) : na
-dxyMa    = useDXY ? ta.ema(dxyClose, macroMaLen) : na
-dxyRising = useDXY ? (dxyClose > dxyMa) : false       // DXY above MA = strengthening
+// -- DXY: rising DXY often bearish for NASDAQ
+dxyClose  = useDXY ? request.security("DXY", timeframe.period, close,
+     gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off) : na
+dxyMa     = useDXY ? ta.ema(dxyClose, macroMaLen) : na
+dxyRising = useDXY ? dxyClose > dxyMa : false
 
 // Macro sentiment: bearish drag present?
-macroBullDrag  = (useTNX and tnxRisingBearish  and tnxRising)  or
-                 (useDXY and dxyRisingBearish   and dxyRising)
-macroBearBoost = macroBullDrag                         // same condition, flipped meaning for shorts
+macroBullDrag  = (useTNX and tnxRisingBearish and tnxRising) or
+                 (useDXY and dxyRisingBearish  and dxyRising)
+macroBearBoost = macroBullDrag   // same condition; headwind for longs = tailwind for shorts
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 3. SESSION & BLACKOUT FILTERS
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
 inSession = useSessionFilter ? not na(time(timeframe.period, sessionStr + ":1234567")) : true
 
-// Simple time-of-day blackout window
 currentHHMM = str.tostring(hour(time, "UTC"), "00") + str.tostring(minute(time, "UTC"), "00")
-inBlackout   = useBlackout and (currentHHMM >= blackoutStart and currentHHMM <= blackoutEnd)
-allowTrade   = inSession and not inBlackout
+inBlackout  = useBlackout and (currentHHMM >= blackoutStart and currentHHMM <= blackoutEnd)
+allowTrade  = inSession and not inBlackout
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 4. SESSION SIGNAL COUNTERS (reset each session)
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
-var int longCount  = 0
-var int shortCount = 0
-var int lastSigBar = 0
+var int  longCount   = 0
+var int  shortCount  = 0
+var int  lastSigBar  = 0
 var bool prevSession = false
 
 newSession = inSession and not prevSession
@@ -183,27 +178,37 @@ prevSession := inSession
 
 inCooldown = (bar_index - lastSigBar) < cooldownBars
 
-// ─────────────────────────────────────────────
-// 5. CONFIDENCE SCORE  (0–5)
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
+// 5. CONFIDENCE SCORE (0-5)
+//    One point per factor supporting the signal direction.
+// -------------------------------------------------------------
 
-// Each factor: 1 point if supporting the directional bias
 bullScore(bool tUp, bool rBull, bool mBull, bool vOk, bool mDrag) =>
     int s = 0
-    if tUp    => s += 1
-    if rBull  => s += 1
-    if mBull  => s += 1
-    if vOk    => s += 1
-    if not mDrag => s += 1          // no macro headwind = bonus
+    if tUp
+        s += 1
+    if rBull
+        s += 1
+    if mBull
+        s += 1
+    if vOk
+        s += 1
+    if not mDrag
+        s += 1   // no macro headwind = bonus
     s
 
 bearScore(bool tDown, bool rBear, bool mBear, bool vOk, bool mBoost) =>
     int s = 0
-    if tDown  => s += 1
-    if rBear  => s += 1
-    if mBear  => s += 1
-    if vOk    => s += 1
-    if mBoost => s += 1             // macro headwind for bulls = tailwind for bears
+    if tDown
+        s += 1
+    if rBear
+        s += 1
+    if mBear
+        s += 1
+    if vOk
+        s += 1
+    if mBoost
+        s += 1   // macro headwind for bulls = tailwind for bears
     s
 
 bScore = bullScore(trendUp,   rsiBullish, macdBull, vixOk, macroBullDrag)
@@ -212,28 +217,30 @@ sScore = bearScore(trendDown, rsiBearish, macdBear, vixOk, macroBearBoost)
 // Minimum confluence: at least 3/5 points required for a signal
 minConfluence = 3
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 6. R:R CHECK
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
-longStop   = close - atr * atrMult
-longTarget = close + atr * atrMult * rrMin
-shortStop  = close + atr * atrMult
-shortTarget= close - atr * atrMult * rrMin
+longStop    = close - atr * atrMult
+longTarget  = close + atr * atrMult * rrMin
+shortStop   = close + atr * atrMult
+shortTarget = close - atr * atrMult * rrMin
 
-longRR  = (longTarget  - close) / (close - longStop)   // should be >= rrMin
+longRR  = (longTarget  - close) / (close - longStop)
 shortRR = (close - shortTarget) / (shortStop - close)
 
 rrOkLong  = longRR  >= rrMin
 rrOkShort = shortRR >= rrMin
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 7. RAW SIGNAL CONDITIONS
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
-rawLong  = trendUp   and rsiBullish and macdBull and vixOk     and not macroBullDrag  and bScore >= minConfluence and rrOkLong  and allowTrade
-rawShort = trendDown and rsiBearish and macdBear and macroBearBoost and sScore >= minConfluence and rrOkShort and allowTrade
-// Note: shorts are allowed regardless of VIX level since elevated fear is a directional tailwind for shorts
+rawLong  = trendUp   and rsiBullish and macdBull and vixOk and not macroBullDrag and
+           bScore >= minConfluence and rrOkLong  and allowTrade
+// Shorts allowed regardless of VIX level: elevated fear is a directional tailwind
+rawShort = trendDown and rsiBearish and macdBear and macroBearBoost and
+           sScore >= minConfluence and rrOkShort and allowTrade
 
 // Apply session caps and cooldown
 longSignal  = rawLong  and longCount  < maxLongPerSession  and not inCooldown
@@ -247,13 +254,13 @@ if shortSignal
     shortCount := shortCount + 1
     lastSigBar := bar_index
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 8. EXIT CONDITIONS
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
 // Track active trade state (simplified for indicator overlay)
-var bool inLong  = false
-var bool inShort = false
+var bool  inLong     = false
+var bool  inShort    = false
 var float entryPrice = na
 var float stopPrice  = na
 var float trailStop  = na
@@ -274,13 +281,13 @@ if shortSignal
 
 // Ratchet trail stop for longs
 if inLong
-    newTrail = close - atr * atrTrail
-    trailStop := math.max(trailStop, newTrail)
+    newTrailL = close - atr * atrTrail
+    trailStop := math.max(trailStop, newTrailL)
 
 // Ratchet trail stop for shorts
 if inShort
-    newTrail = close + atr * atrTrail
-    trailStop := math.min(trailStop, newTrail)
+    newTrailS = close + atr * atrTrail
+    trailStop := math.min(trailStop, newTrailS)
 
 // Exit triggers
 exitLong  = inLong  and (close < trailStop or (trendDown and macdBear) or rsiBearish)
@@ -291,56 +298,58 @@ if exitLong
 if exitShort
     inShort := false
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 9. PLOTS
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
 // EMA ribbon
-plot(showRibbon ? emaF : na, "EMA Fast",  color=color.new(color.teal,  30), linewidth=1)
-plot(showRibbon ? emaS : na, "EMA Slow",  color=color.new(color.blue,  30), linewidth=2)
-plot(showRibbon ? emaT : na, "EMA Trend", color=color.new(color.gray,  20), linewidth=3)
+plot(showRibbon ? emaF : na, "EMA Fast",  color=color.new(color.teal, 30), linewidth=1)
+plot(showRibbon ? emaS : na, "EMA Slow",  color=color.new(color.blue, 30), linewidth=2)
+plot(showRibbon ? emaT : na, "EMA Trend", color=color.new(color.gray, 20), linewidth=3)
 
 ribbonColor = trendUp ? color.new(color.teal, 80) : trendDown ? color.new(color.red, 80) : color.new(color.gray, 90)
 fill(plot(emaF, display=display.none), plot(emaS, display=display.none), color=ribbonColor)
 
-// ATR stop bands
-plot(showATRBands and inLong  ? trailStop : na, "Long Trail Stop",  color=color.new(color.red,   40), linewidth=1, style=plot.style_linebr)
-plot(showATRBands and inShort ? trailStop : na, "Short Trail Stop", color=color.new(color.green, 40), linewidth=1, style=plot.style_linebr)
+// ATR trailing stop lines
+plot(showATRBands and inLong  ? trailStop : na, "Long Trail Stop",
+     color=color.new(color.red,   40), linewidth=1, style=plot.style_linebr)
+plot(showATRBands and inShort ? trailStop : na, "Short Trail Stop",
+     color=color.new(color.green, 40), linewidth=1, style=plot.style_linebr)
 
-// ─── Entry / Exit labels ───────────────────────────────────────
+// -- Entry / Exit labels --
 
 scoreLabel(int sc) =>
-    sc == 5 ? "★★★★★" :
-     sc == 4 ? "★★★★☆" :
-     sc == 3 ? "★★★☆☆" :
-     sc == 2 ? "★★☆☆☆" :
-     sc == 1 ? "★☆☆☆☆" : "☆☆☆☆☆"
+    sc == 5 ? "[5/5]" :
+     sc == 4 ? "[4/5]" :
+     sc == 3 ? "[3/5]" :
+     sc == 2 ? "[2/5]" :
+     sc == 1 ? "[1/5]" : "[0/5]"
 
 if longSignal
     lbl = label.new(
          bar_index, low - atr * 0.3,
-         "▲ LONG\n" + scoreLabel(bScore) + " (" + str.tostring(bScore) + "/5)" +
+         "LONG " + scoreLabel(bScore) +
          "\nStop: "   + str.tostring(math.round(longStop,   2)) +
          "\nTarget: " + str.tostring(math.round(longTarget, 2)),
-         style        = label.style_label_up,
-         color        = color.new(color.teal, 10),
-         textcolor    = color.white,
-         size         = size.normal)
+         style     = label.style_label_up,
+         color     = color.new(color.teal, 10),
+         textcolor = color.white,
+         size      = size.normal)
 
 if shortSignal
     lbl = label.new(
          bar_index, high + atr * 0.3,
-         "▼ SHORT\n" + scoreLabel(sScore) + " (" + str.tostring(sScore) + "/5)" +
+         "SHORT " + scoreLabel(sScore) +
          "\nStop: "   + str.tostring(math.round(shortStop,   2)) +
          "\nTarget: " + str.tostring(math.round(shortTarget, 2)),
-         style        = label.style_label_down,
-         color        = color.new(color.red, 10),
-         textcolor    = color.white,
-         size         = size.normal)
+         style     = label.style_label_down,
+         color     = color.new(color.red, 10),
+         textcolor = color.white,
+         size      = size.normal)
 
 if exitLong and not longSignal
     label.new(bar_index, high + atr * 0.1,
-         "✖ EXIT LONG",
+         "EXIT LONG",
          style     = label.style_label_down,
          color     = color.new(color.orange, 20),
          textcolor = color.white,
@@ -348,101 +357,101 @@ if exitLong and not longSignal
 
 if exitShort and not shortSignal
     label.new(bar_index, low - atr * 0.1,
-         "✖ EXIT SHORT",
+         "EXIT SHORT",
          style     = label.style_label_up,
          color     = color.new(color.orange, 20),
          textcolor = color.white,
          size      = size.small)
 
-// ─── Signal shapes on chart ────────────────────────────────────
+// -- Signal shapes on chart --
 plotshape(longSignal,  title="Long",       style=shape.triangleup,   location=location.belowbar, color=color.teal,   size=size.small)
 plotshape(shortSignal, title="Short",      style=shape.triangledown, location=location.abovebar, color=color.red,    size=size.small)
 plotshape(exitLong  and not longSignal,  title="Exit Long",  style=shape.xcross, location=location.abovebar, color=color.orange, size=size.tiny)
 plotshape(exitShort and not shortSignal, title="Exit Short", style=shape.xcross, location=location.belowbar, color=color.orange, size=size.tiny)
 
-// ─── Background colour when in active trade ───────────────────
+// -- Background colour when in active trade --
 bgcolor(inLong  ? color.new(color.teal, 92) : na, title="In Long")
 bgcolor(inShort ? color.new(color.red,  92) : na, title="In Short")
 
-// ─── Blackout shading ─────────────────────────────────────────
+// -- Blackout shading --
 bgcolor(inBlackout ? color.new(color.yellow, 88) : na, title="Macro Blackout")
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 10. INFO TABLE (macro data panel)
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
 var table infoTable = table.new(position.top_right, 3, 8,
      border_width=1, border_color=color.gray,
      bgcolor=color.new(color.black, 70))
 
 if barstate.islast and showMacro
-    hdr = color.new(color.navy, 30)
-    cel = color.new(color.black, 60)
+    hdr  = color.new(color.navy,  30)
+    cel  = color.new(color.black, 60)
     txtC = color.white
-    table.cell(infoTable, 0, 0, "Factor",       text_color=txtC, bgcolor=hdr)
-    table.cell(infoTable, 1, 0, "Value",         text_color=txtC, bgcolor=hdr)
-    table.cell(infoTable, 2, 0, "Signal",        text_color=txtC, bgcolor=hdr)
+    table.cell(infoTable, 0, 0, "Factor",  text_color=txtC, bgcolor=hdr)
+    table.cell(infoTable, 1, 0, "Value",   text_color=txtC, bgcolor=hdr)
+    table.cell(infoTable, 2, 0, "Signal",  text_color=txtC, bgcolor=hdr)
 
-    table.cell(infoTable, 0, 1, "EMA Trend",     text_color=txtC, bgcolor=cel)
+    table.cell(infoTable, 0, 1, "EMA Trend", text_color=txtC, bgcolor=cel)
     table.cell(infoTable, 1, 1, trendUp ? "BULL" : trendDown ? "BEAR" : "NEUTRAL",
-         text_color = trendUp ? color.teal : trendDown ? color.red : color.gray, bgcolor=cel)
-    table.cell(infoTable, 2, 1, "—",             text_color=txtC, bgcolor=cel)
+         text_color=trendUp ? color.teal : trendDown ? color.red : color.gray, bgcolor=cel)
+    table.cell(infoTable, 2, 1, "-", text_color=txtC, bgcolor=cel)
 
-    table.cell(infoTable, 0, 2, "RSI",           text_color=txtC, bgcolor=cel)
+    table.cell(infoTable, 0, 2, "RSI", text_color=txtC, bgcolor=cel)
     table.cell(infoTable, 1, 2, str.tostring(math.round(rsi, 1)),
-         text_color = rsiBullish ? color.teal : rsiBearish ? color.red : color.gray, bgcolor=cel)
+         text_color=rsiBullish ? color.teal : rsiBearish ? color.red : color.gray, bgcolor=cel)
     table.cell(infoTable, 2, 2, rsiBullish ? "BULL" : rsiBearish ? "BEAR" : "NEUTRAL",
-         text_color = rsiBullish ? color.teal : rsiBearish ? color.red : color.gray, bgcolor=cel)
+         text_color=rsiBullish ? color.teal : rsiBearish ? color.red : color.gray, bgcolor=cel)
 
-    table.cell(infoTable, 0, 3, "MACD Hist",     text_color=txtC, bgcolor=cel)
+    table.cell(infoTable, 0, 3, "MACD Hist", text_color=txtC, bgcolor=cel)
     table.cell(infoTable, 1, 3, str.tostring(math.round(histLine, 2)),
-         text_color = macdBull ? color.teal : macdBear ? color.red : color.gray, bgcolor=cel)
+         text_color=macdBull ? color.teal : macdBear ? color.red : color.gray, bgcolor=cel)
     table.cell(infoTable, 2, 3, macdBull ? "BULL" : macdBear ? "BEAR" : "NEUTRAL",
-         text_color = macdBull ? color.teal : macdBear ? color.red : color.gray, bgcolor=cel)
+         text_color=macdBull ? color.teal : macdBear ? color.red : color.gray, bgcolor=cel)
 
-    table.cell(infoTable, 0, 4, "VIX",           text_color=txtC, bgcolor=cel)
+    table.cell(infoTable, 0, 4, "VIX", text_color=txtC, bgcolor=cel)
     table.cell(infoTable, 1, 4, str.tostring(math.round(vixClose, 1)),
-         text_color = vixLow ? color.teal : color.red, bgcolor=cel)
+         text_color=vixLow ? color.teal : color.red, bgcolor=cel)
     table.cell(infoTable, 2, 4, vixOk ? (vixLow ? "LOW" : "HIGH") : "EXTREME",
-         text_color = vixOk ? (vixLow ? color.teal : color.orange) : color.red, bgcolor=cel)
+         text_color=vixOk ? (vixLow ? color.teal : color.orange) : color.red, bgcolor=cel)
 
-    table.cell(infoTable, 0, 5, "US10Y",         text_color=txtC, bgcolor=cel)
+    table.cell(infoTable, 0, 5, "US10Y", text_color=txtC, bgcolor=cel)
     table.cell(infoTable, 1, 5, useTNX ? str.tostring(math.round(tnxClose, 3)) : "OFF",
-         text_color = tnxRising ? color.red : color.teal, bgcolor=cel)
-    table.cell(infoTable, 2, 5, useTNX ? (tnxRising ? "RISING↑" : "FALLING↓") : "—",
-         text_color = tnxRising ? color.red : color.teal, bgcolor=cel)
+         text_color=tnxRising ? color.red : color.teal, bgcolor=cel)
+    table.cell(infoTable, 2, 5, useTNX ? (tnxRising ? "RISING" : "FALLING") : "-",
+         text_color=tnxRising ? color.red : color.teal, bgcolor=cel)
 
-    table.cell(infoTable, 0, 6, "DXY",           text_color=txtC, bgcolor=cel)
+    table.cell(infoTable, 0, 6, "DXY", text_color=txtC, bgcolor=cel)
     table.cell(infoTable, 1, 6, useDXY ? str.tostring(math.round(dxyClose, 2)) : "OFF",
-         text_color = dxyRising ? color.red : color.teal, bgcolor=cel)
-    table.cell(infoTable, 2, 6, useDXY ? (dxyRising ? "RISING↑" : "FALLING↓") : "—",
-         text_color = dxyRising ? color.red : color.teal, bgcolor=cel)
+         text_color=dxyRising ? color.red : color.teal, bgcolor=cel)
+    table.cell(infoTable, 2, 6, useDXY ? (dxyRising ? "RISING" : "FALLING") : "-",
+         text_color=dxyRising ? color.red : color.teal, bgcolor=cel)
 
     scoreColor = bScore >= sScore ? (bScore >= minConfluence ? color.teal : color.gray) :
                                      (sScore >= minConfluence ? color.red  : color.gray)
-    table.cell(infoTable, 0, 7, "Score",         text_color=txtC, bgcolor=cel)
+    table.cell(infoTable, 0, 7, "Score", text_color=txtC, bgcolor=cel)
     table.cell(infoTable, 1, 7, "L:" + str.tostring(bScore) + "/5  S:" + str.tostring(sScore) + "/5",
          text_color=scoreColor, bgcolor=cel)
-    table.cell(infoTable, 2, 7, longSignal ? "▲ LONG" : shortSignal ? "▼ SHORT" : "WAIT",
-         text_color = longSignal ? color.teal : shortSignal ? color.red : color.gray, bgcolor=cel)
+    table.cell(infoTable, 2, 7, longSignal ? "LONG" : shortSignal ? "SHORT" : "WAIT",
+         text_color=longSignal ? color.teal : shortSignal ? color.red : color.gray, bgcolor=cel)
 
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 // 11. ALERTS
-// ─────────────────────────────────────────────
+// -------------------------------------------------------------
 
-alertcondition(longSignal,  "NQ FX PRO – LONG Signal",
-     "NASDAQ LONG entry – Score: {{plot_0}} | Stop: {{plot_2}} | Target: {{plot_3}}")
-alertcondition(shortSignal, "NQ FX PRO – SHORT Signal",
-     "NASDAQ SHORT entry – Score: {{plot_0}} | Stop: {{plot_4}} | Target: {{plot_5}}")
-alertcondition(exitLong,    "NQ FX PRO – EXIT Long",
+alertcondition(longSignal,  "NQ FX PRO - LONG Signal",
+     "NASDAQ LONG entry | Stop: {{plot_2}} | Target: {{plot_3}}")
+alertcondition(shortSignal, "NQ FX PRO - SHORT Signal",
+     "NASDAQ SHORT entry | Stop: {{plot_4}} | Target: {{plot_5}}")
+alertcondition(exitLong,    "NQ FX PRO - EXIT Long",
      "NASDAQ EXIT long position")
-alertcondition(exitShort,   "NQ FX PRO – EXIT Short",
+alertcondition(exitShort,   "NQ FX PRO - EXIT Short",
      "NASDAQ EXIT short position")
 
-// ─── Hidden plots consumed by alerts ─────────────────────────
-plot(bScore,       "Bull Score",    display=display.none)
-plot(sScore,       "Bear Score",    display=display.none)
-plot(longStop,     "Long Stop",     display=display.none)
-plot(longTarget,   "Long Target",   display=display.none)
-plot(shortStop,    "Short Stop",    display=display.none)
-plot(shortTarget,  "Short Target",  display=display.none)
+// -- Hidden plots consumed by alerts --
+plot(bScore,       "Bull Score",   display=display.none)
+plot(sScore,       "Bear Score",   display=display.none)
+plot(longStop,     "Long Stop",    display=display.none)
+plot(longTarget,   "Long Target",  display=display.none)
+plot(shortStop,    "Short Stop",   display=display.none)
+plot(shortTarget,  "Short Target", display=display.none)
