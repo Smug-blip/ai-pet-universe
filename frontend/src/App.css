@@ -1,38 +1,202 @@
-.App {
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: #333;
+}
+
+.home, .login, .register, .dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.home {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  align-items: center;
+  min-height: 100vh;
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.home h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.home p {
+  font-size: 1.3rem;
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+.home div {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.home a, .login a, .register a {
+  display: inline-block;
+  padding: 12px 30px;
+  background: white;
+  color: #667eea;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.home a:hover, .login a:hover, .register a:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.login, .register {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.login, .register {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  margin: auto;
+}
+
+.login h2, .register h2 {
+  margin-bottom: 30px;
+  color: #667eea;
+  font-size: 2rem;
+}
+
+.login form, .register form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login input, .register input, .dashboard input {
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.login input:focus, .register input:focus, .dashboard input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.login button, .register button, .dashboard button {
+  padding: 12px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.login button:hover, .register button:hover, .dashboard button:hover {
+  background: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.error {
+  color: #e74c3c;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.dashboard {
+  background: white;
+  border-radius: 10px;
+  padding: 40px;
+  max-width: 1000px;
+  margin: 20px auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard h1 {
+  color: #667eea;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+}
+
+.create-companion {
+  background: #f8f9fa;
+  padding: 30px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.create-companion h2 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.create-companion form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.create-companion input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.companions {
+  margin-top: 40px;
+}
+
+.companions h2 {
+  color: #333;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.companion-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.companion-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.companion-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.companion-card p {
+  font-size: 1rem;
+  margin: 5px 0;
+  opacity: 0.9;
 }
