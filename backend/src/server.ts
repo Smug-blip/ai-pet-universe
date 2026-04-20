@@ -8,13 +8,26 @@ import jwt from 'jsonwebtoken';
 dotenv.config();
 
 const app: Express = express();
+
+console.log('🚀 Initializing Express app...');
+
+// Initialize pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/ai_pet_universe',
+});
+
+console.log('📦 Pool created');
+
+pool.on('error', (err) => {
+  console.error('❌ Unexpected error on idle client', err);
 });
 
 // Middleware
 app.use(cors());
+console.log('✅ CORS middleware added');
+
 app.use(express.json());
+console.log('✅ JSON middleware added');
 
 // JWT verification middleware
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
@@ -35,15 +48,21 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {
+  console.log('📍 Health check endpoint called');
   res.json({ status: 'Backend is running' });
 });
+
+console.log('✅ Health endpoint registered');
 
 // User Routes
 app.post('/api/auth/register', async (req: Request, res: Response) => {
   try {
     const { email, username, password } = req.body;
 
-    // Hash password
+    if (!email || !username || !password) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const result = await pool.query(
@@ -56,6 +75,7 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
 
     res.json({ user, token });
   } catch (error) {
+    console.error('❌ Registration error:', error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -63,6 +83,10 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Missing email or password' });
+    }
     
     const result = await pool.query(
       'SELECT * FROM users WHERE email = $1',
@@ -87,6 +111,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       token 
     });
   } catch (error) {
+    console.error('❌ Login error:', error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -105,6 +130,7 @@ app.get('/api/auth/me', verifyToken, async (req: Request, res: Response) => {
 
     res.json({ user: result.rows[0] });
   } catch (error) {
+    console.error('❌ Auth me error:', error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -121,6 +147,7 @@ app.get('/api/companions/:userId', verifyToken, async (req: Request, res: Respon
     
     res.json({ companions: result.rows });
   } catch (error) {
+    console.error('❌ Get companions error:', error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
@@ -130,7 +157,10 @@ app.post('/api/companions', verifyToken, async (req: Request, res: Response) => 
     const { owner_id, name, species } = req.body;
     const userId = (req as any).userId;
 
-    // Verify owner
+    if (!owner_id || !name || !species) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     if (parseInt(owner_id) !== userId) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
@@ -142,12 +172,27 @@ app.post('/api/companions', verifyToken, async (req: Request, res: Response) => 
     
     res.json({ companion: result.rows[0] });
   } catch (error) {
+    console.error('❌ Create companion error:', error);
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
+console.log('✅ All routes registered');
+
 // Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = parseInt(process.env.PORT || '5000', 10);
+console.log(`\n⏳ Attempting to start server on port ${PORT}...`);
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n✅ SERVER IS RUNNING ON PORT ${PORT}`);
+  console.log(`📍 Try: http://localhost:${PORT}/api/health`);
+  console.log(`Database URL: ${process.env.DATABASE_URL || 'Not set'}\n`);
+});
+
+server.on('error', (err: any) => {
+  console.error('❌ Server error:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
 });

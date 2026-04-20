@@ -8,171 +8,220 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
-  color: #333;
 }
 
-.home, .login, .register, .dashboard {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
-  text-align: center;
-}
-
-.home {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+.app-container {
   min-height: 100vh;
-  color: white;
-}
-
-.home h1 {
-  font-size: 3rem;
-  margin-bottom: 20px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.home p {
-  font-size: 1.3rem;
-  margin-bottom: 30px;
-  opacity: 0.9;
-}
-
-.home div {
   display: flex;
-  gap: 20px;
-  justify-content: center;
-}
-
-.home a, .login a, .register a {
-  display: inline-block;
-  padding: 12px 30px;
-  background: white;
-  color: #667eea;
-  text-decoration: none;
-  border-radius: 5px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-.home a:hover, .login a:hover, .register a:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.login, .register {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  justify-content: center;
+  padding: 20px;
 }
 
-.login, .register {
+/* Auth Forms */
+.auth-form {
   background: white;
   padding: 40px;
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 100%;
   max-width: 400px;
-  margin: auto;
 }
 
-.login h2, .register h2 {
-  margin-bottom: 30px;
+.auth-form h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+  text-align: center;
   color: #667eea;
-  font-size: 2rem;
 }
 
-.login form, .register form {
+.auth-form h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #333;
+}
+
+.auth-form form {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.login input, .register input, .dashboard input {
+.auth-form input,
+.auth-form button {
   padding: 12px;
   border: 2px solid #ddd;
   border-radius: 5px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
+  font-size: 16px;
+  transition: all 0.3s ease;
 }
 
-.login input:focus, .register input:focus, .dashboard input:focus {
+.auth-form input {
+  border-color: #ddd;
+}
+
+.auth-form input:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
 }
 
-.login button, .register button, .dashboard button {
-  padding: 12px;
-  background: #667eea;
+.auth-form button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 5px;
-  font-weight: bold;
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s;
+  font-weight: bold;
+  font-size: 16px;
 }
 
-.login button:hover, .register button:hover, .dashboard button:hover {
-  background: #764ba2;
+.auth-form button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
-.error {
-  color: #e74c3c;
-  margin-bottom: 15px;
+.auth-form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-form p {
+  margin-top: 15px;
+  text-align: center;
+  color: #666;
+}
+
+.auth-form a {
+  color: #667eea;
+  text-decoration: none;
   font-weight: bold;
 }
 
+.auth-form a:hover {
+  text-decoration: underline;
+}
+
+/* Error Messages */
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 12px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  border-left: 4px solid #c33;
+}
+
+/* Dashboard */
 .dashboard {
   background: white;
-  border-radius: 10px;
   padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 100%;
   max-width: 1000px;
-  margin: 20px auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.dashboard h1 {
-  color: #667eea;
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 30px;
-  font-size: 2.5rem;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #eee;
 }
 
-.create-companion {
+.dashboard-header h1 {
+  color: #667eea;
+  font-size: 28px;
+}
+
+.logout-btn {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: #ff5252;
+  transform: translateY(-2px);
+}
+
+/* Add Companion Section */
+.add-companion-section {
   background: #f8f9fa;
-  padding: 30px;
+  padding: 20px;
   border-radius: 8px;
   margin-bottom: 30px;
 }
 
-.create-companion h2 {
+.add-companion-section h2 {
   color: #333;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
+  font-size: 20px;
 }
 
-.create-companion form {
-  display: flex;
+.add-companion-section form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
   gap: 10px;
-  flex-wrap: wrap;
+  align-items: end;
 }
 
-.create-companion input {
-  flex: 1;
-  min-width: 200px;
+.add-companion-section input,
+.add-companion-section button {
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
 }
 
-.companions {
-  margin-top: 40px;
+.add-companion-section input:focus {
+  outline: none;
+  border-color: #667eea;
 }
 
-.companions h2 {
+.add-companion-section button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.add-companion-section button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.add-companion-section button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .add-companion-section form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Companions Section */
+.companions-section h2 {
   color: #333;
   margin-bottom: 20px;
-  text-align: left;
+  font-size: 22px;
+}
+
+.companions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
 }
 
 .companion-card {
@@ -180,9 +229,8 @@ body {
   color: white;
   padding: 20px;
   border-radius: 8px;
-  margin-bottom: 15px;
-  transition: all 0.3s;
-  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .companion-card:hover {
@@ -191,12 +239,47 @@ body {
 }
 
 .companion-card h3 {
-  font-size: 1.5rem;
+  font-size: 20px;
   margin-bottom: 10px;
 }
 
 .companion-card p {
-  font-size: 1rem;
+  font-size: 14px;
   margin: 5px 0;
   opacity: 0.9;
+}
+
+/* Home Page */
+.home-page {
+  text-align: center;
+  color: white;
+}
+
+.home-page h1 {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.home-page p {
+  font-size: 18px;
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+.home-page button {
+  background: white;
+  color: #667eea;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0 10px;
+  transition: all 0.3s ease;
+}
+
+.home-page button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }

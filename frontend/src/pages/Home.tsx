@@ -1,24 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-interface HomeProps {
-  user: any;
-}
+const Home: React.FC = () => {
+  const navigate = useNavigate();
 
-const Home: React.FC<HomeProps> = ({ user }) => {
   return (
-    <div className="home">
-      <h1>Welcome to AI Pet Universe</h1>
-      <p>Create and manage your AI-powered pet companions!</p>
-      
-      {user ? (
-        <Link to="/dashboard">Go to Dashboard</Link>
-      ) : (
-        <div>
-          <Link to="/login">Login</Link>
-          <Link to="/register">Register</Link>
-        </div>
-      )}
+    <div className="app-container">
+      <div className="home-page">
+        <h1>🎮 Welcome to AI Pet Universe</h1>
+        <p>Create and care for your AI-powered pet companions!</p>
+        <button onClick={() => navigate('/login')}>Login</button>
+        <button onClick={() => navigate('/register')}>Register</button>
+      </div>
     </div>
   );
 };
