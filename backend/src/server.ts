@@ -13,7 +13,7 @@ console.log('🚀 Initializing Express app...');
 
 // Initialize pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/ai_pet_universe',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:Vlekkie09!@localhost:5432/ai_pet_universe',
 });
 
 console.log('📦 Pool created');
