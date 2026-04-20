@@ -1,3 +1,4 @@
+//@version=5
 // ============================================================
 // NASDAQ FX PRO – Entry & Exit Signal Indicator
 // TradingView Pine Script v5
@@ -6,28 +7,26 @@
 // ACCOUNT TYPE   : FX PRO / CFD (works with any margin account)
 //
 // CONFLUENCE MODEL
-//   1. Trend     – EMA ribbon (fast/slow) direction
-//   2. Momentum  – RSI + MACD histogram agreement
-//   3. Volatility regime – ATR-normalised, VIX proxy via CBOE:VIX
-//   4. Macro drivers  – US10Y yield (CBOE:TNX) & DXY pressure
-//   5. Session filter – NYSE open + London/NY overlap only
-//   6. Macro blackout – user-configurable minutes around events
+//   1. Trend     - EMA ribbon (fast/slow) direction
+//   2. Momentum  - RSI + MACD histogram agreement
+//   3. Volatility regime - ATR-normalised, VIX proxy via CBOE:VIX
+//   4. Macro drivers  - US10Y yield (CBOE:TNX) & DXY pressure
+//   5. Session filter - NYSE open + London/NY overlap only
+//   6. Macro blackout - user-configurable minutes around events
 //
 // EXITS
-//   • Invalidation stop  – ATR multiple below/above entry bar
-//   • Volatility trailing stop – ATR trailing ratchet
-//   • Momentum decay exit – RSI reversal cross / MACD flip
-//   • Regime flip exit   – EMA ribbon reversal
+//   * Invalidation stop  - ATR multiple below/above entry bar
+//   * Volatility trailing stop - ATR trailing ratchet
+//   * Momentum decay exit - RSI reversal cross / MACD flip
+//   * Regime flip exit   - EMA ribbon reversal
 //
 // RISK CONTROLS
-//   • Max N long + N short signals per session
-//   • Cooldown bars after any signal
-//   • Min R:R check (reward ≥ rr_min × risk)
+//   * Max N long + N short signals per session
+//   * Cooldown bars after any signal
+//   * Min R:R check (reward >= rr_min x risk)
 //
-// CONFIDENCE SCORE  0–5  (one point per confluence factor met)
+// CONFIDENCE SCORE  0-5  (one point per confluence factor met)
 // ============================================================
-
-//@version=5
 indicator(
      title        = "NASDAQ FX PRO – Entry & Exit Signals",
      shorttitle   = "NQ FX PRO",
