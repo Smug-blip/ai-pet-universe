@@ -1,0 +1,21 @@
+# Unity
+Library/
+Temp/
+Builds/
+Logs/
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.userprefs
+*.user
+*.unityprefs
+Assets/AssetStoreTools*
+[Bb]uild/
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+*.apk
+*.unitypackage
