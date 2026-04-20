@@ -233,8 +233,8 @@ rrOkShort = shortRR >= rrMin
 // ─────────────────────────────────────────────
 
 rawLong  = trendUp   and rsiBullish and macdBull and vixOk     and not macroBullDrag  and bScore >= minConfluence and rrOkLong  and allowTrade
-rawShort = trendDown and rsiBearish and macdBear and (vixOk or not vixOk) and macroBearBoost and sScore >= minConfluence and rrOkShort and allowTrade
-// Note: shorts are allowed in any VIX environment since fear is directional tailwind
+rawShort = trendDown and rsiBearish and macdBear and macroBearBoost and sScore >= minConfluence and rrOkShort and allowTrade
+// Note: shorts are allowed regardless of VIX level since elevated fear is a directional tailwind for shorts
 
 // Apply session caps and cooldown
 longSignal  = rawLong  and longCount  < maxLongPerSession  and not inCooldown
@@ -314,7 +314,8 @@ scoreLabel(int sc) =>
     sc == 5 ? "★★★★★" :
      sc == 4 ? "★★★★☆" :
      sc == 3 ? "★★★☆☆" :
-     sc == 2 ? "★★☆☆☆" : "★☆☆☆☆"
+     sc == 2 ? "★★☆☆☆" :
+     sc == 1 ? "★☆☆☆☆" : "☆☆☆☆☆"
 
 if longSignal
     lbl = label.new(
